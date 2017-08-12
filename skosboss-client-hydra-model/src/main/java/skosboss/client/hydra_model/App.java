@@ -5,6 +5,7 @@ import java.io.Reader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.Map;
 
 import org.eclipse.rdf4j.model.Model;
 import org.eclipse.rdf4j.model.impl.LinkedHashModel;
@@ -26,7 +27,9 @@ public class App implements Runnable {
 			load(folder + "EntryPoint.ttl")
 		);
 
-		new ParseDescriptor(model).run();
+		Map<SupportedProperty, IriTemplate> properties =
+			new ParseDescriptor(model).run();
+		
 		
 	}
 	

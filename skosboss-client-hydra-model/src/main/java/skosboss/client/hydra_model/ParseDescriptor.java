@@ -27,7 +27,7 @@ class ParseDescriptor {
 		this.model = model;
 	}
 	
-	void run() {
+	Map<SupportedProperty, IriTemplate> run() {
 		
 		// find instance of hydra:ApiDocumentation
 		Resource doc = findApiDocumentation();
@@ -60,6 +60,7 @@ class ParseDescriptor {
 		
 		System.out.println(templates);
 		
+		return templates;
 	}
 	
 	private IriTemplate parseIriTemplate(Resource resource) {
