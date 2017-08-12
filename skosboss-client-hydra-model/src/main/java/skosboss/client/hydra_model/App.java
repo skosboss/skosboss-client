@@ -8,12 +8,21 @@ import java.nio.file.Paths;
 import java.util.Map;
 
 import org.eclipse.rdf4j.model.Model;
+import org.eclipse.rdf4j.model.ValueFactory;
 import org.eclipse.rdf4j.model.impl.LinkedHashModel;
+import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
+import org.eclipse.rdf4j.model.util.ModelBuilder;
+import org.eclipse.rdf4j.model.vocabulary.RDF;
+import org.eclipse.rdf4j.model.vocabulary.SKOS;
 import org.eclipse.rdf4j.rio.RDFFormat;
 import org.eclipse.rdf4j.rio.Rio;
 
+import skosboss.client.hydra_model.Rdf.SkosApi;
+
 public class App implements Runnable {
 
+	private static final ValueFactory f = SimpleValueFactory.getInstance();
+	
 	public static void main(String... args) {
 		new App().run();
 	}
@@ -29,7 +38,47 @@ public class App implements Runnable {
 
 		Map<SupportedProperty, IriTemplate> properties =
 			new ParseDescriptor(model).run();
+
 		
+		// #####################################
+		// #                                   #
+		// #    GOAL: CREATE CONCEPT SCHEME    #
+		// #                                   #
+		// #####################################
+		
+		Model desiredAddedDiff = new ModelBuilder()
+			.subject(f.createBNode())
+			.add(RDF.TYPE, SKOS.CONCEPT_SCHEME)
+			.add(SkosApi.uri, f.createIRI("urn:new-uri"))
+			.add(SkosApi.inProject, f.createLiteral("project id"))
+			.add(SkosApi.title, f.createLiteral("concept scheme title"))
+			.build();
+		
+		// find ExtOperation with the desired 'addedDiff'
+		properties.keySet().stream()
+		.filter(p -> {
+			
+			Property property = p.getProperty();
+			if (!(property instanceof TemplatedLink))
+				return false;
+			
+			TemplatedLink link = (TemplatedLink) property;
+			Operation operation = link.getSupportedOperation();
+			if (!(operation instanceof ExtOperation))
+				return false;
+			
+			ExtOperation extOperation = (ExtOperation) operation;
+			Shape addedDiff = extOperation.getAddedDiff();
+			
+			
+			// TODO check if 'addedDiff' shape matches 'desiredAddedDiff' graph
+			
+			// TODO if so, proceed to execute operation according to 'template' below
+			IriTemplate template = properties.get(p);
+			
+			
+			return true;
+		});
 		
 	}
 	
