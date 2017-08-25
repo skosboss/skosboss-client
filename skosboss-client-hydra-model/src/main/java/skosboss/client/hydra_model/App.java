@@ -2,12 +2,21 @@ package skosboss.client.hydra_model;
 
 import java.io.IOException;
 import java.io.Reader;
+import java.io.StringWriter;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.eclipse.rdf4j.model.Model;
+import org.eclipse.rdf4j.model.Resource;
+import org.eclipse.rdf4j.model.Value;
 import org.eclipse.rdf4j.model.ValueFactory;
 import org.eclipse.rdf4j.model.impl.LinkedHashModel;
 import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
@@ -54,22 +63,41 @@ public class App implements Runnable {
 			.add(SkosApi.title, f.createLiteral("concept scheme title"))
 			.build();
 		
+		System.out.println("desired added diff:");
+		printModel(desiredAddedDiff);
+		
+		System.out.println("PROPS: " + properties.keySet().size());
+		
 		// find ExtOperation with the desired 'addedDiff'
 		properties.keySet().stream()
 		.filter(p -> {
 			
+			System.out.println("???");
+			
 			Property property = p.getProperty();
+			System.out.println("\tis templated link: " + (property instanceof TemplatedLink));
 			if (!(property instanceof TemplatedLink))
 				return false;
 			
 			TemplatedLink link = (TemplatedLink) property;
 			Operation operation = link.getSupportedOperation();
+			System.out.println("\thas ExtOperation: " + (operation instanceof ExtOperation));
 			if (!(operation instanceof ExtOperation))
 				return false;
 			
 			ExtOperation extOperation = (ExtOperation) operation;
 			Shape addedDiff = extOperation.getAddedDiff();
 			
+			if (addedDiff == null) {
+				System.out.println("op has NO added diff");
+				return false;
+			}
+			
+			System.out.println("OPERATION ADDED DIFF:");
+			
+			Model isolatedAddedDiff = getResourceTreeModel(addedDiff.getModel(), addedDiff.getResource());
+			
+			printModel(isolatedAddedDiff);
 			
 			// TODO check if 'addedDiff' shape matches 'desiredAddedDiff' graph
 			
@@ -78,11 +106,46 @@ public class App implements Runnable {
 			
 			
 			return true;
-		});
+		})
+		.forEach(x -> {});
 		
 	}
 	
+	private Model getResourceTreeModel(Model source, Resource root) {
+		Model model = new LinkedHashModel();
+		getResourceTreeModel(source, root, model, Collections.emptyList());
+		return model;
+	}
 	
+	private void getResourceTreeModel(Model source, Resource root, Model result, List<Resource> visited) {
+		
+		if (visited.contains(root)) return;
+		
+		List<Resource> newVisited =
+			Stream.concat(
+				visited.stream(),
+				Arrays.asList(root).stream()
+			)
+			.collect(Collectors.toList());
+		
+		source.filter(root, null, null).forEach(s -> {
+			result.add(s);
+			Value o = s.getObject();
+			if (o instanceof Resource)
+				getResourceTreeModel(source, (Resource) o, result, newVisited);
+		});
+	}
+	
+	private String asTurtle(Model model) {
+		StringWriter writer = new StringWriter();
+		Rio.write(model, writer, RDFFormat.TURTLE);
+		return writer.toString();
+	}
+	
+	private void printModel(Model model) {
+		System.out.println(asTurtle(model));
+	}
+
 	private Model merge(Model a, Model b) {
 		Model model = new LinkedHashModel();
 		model.addAll(a);
