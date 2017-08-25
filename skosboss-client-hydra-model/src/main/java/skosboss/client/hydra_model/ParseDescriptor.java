@@ -22,9 +22,15 @@ public class ParseDescriptor {
 	private static final ValueFactory f = SimpleValueFactory.getInstance();
 	
 	private Model model;
+	private RdfUtils utils;
 
-	public ParseDescriptor(Model model) {
+	public static ParseDescriptor create(Model model) {
+		return new ParseDescriptor(model, new RdfUtils());
+	}
+	
+	ParseDescriptor(Model model, RdfUtils utils) {
 		this.model = model;
+		this.utils = utils;
 	}
 	
 	public Map<SupportedProperty, IriTemplate> run() {
@@ -175,11 +181,17 @@ public class ParseDescriptor {
 		return getProperty(
 			subject,
 			predicate,
-			v -> new Shape(model, (Resource) v),
+			// TODO just use Model instead of Shape, since Shape is now just a container for a Model...
+			v -> new Shape(
+				utils.getResourceTreeModel(
+					model,
+					(Resource) v
+				)
+			),
 			defaultValue
 		);
 	}
-	
+
 	private String getStringProperty(
 		Resource subject,
 		IRI predicate,

@@ -55,7 +55,7 @@ public class App implements Runnable {
 		);
 
 		Map<SupportedProperty, IriTemplate> properties =
-			new ParseDescriptor(model).run();
+			ParseDescriptor.create(model).run();
 
 		
 		// #####################################
@@ -100,7 +100,7 @@ public class App implements Runnable {
 			
 			System.out.println("OPERATION ADDED DIFF:");
 			
-			Model isolatedAddedDiff = getResourceTreeModel(addedDiff.getModel(), addedDiff.getResource());
+			Model isolatedAddedDiff = addedDiff.getModel();
 			
 			printModel(isolatedAddedDiff);
 			
@@ -114,31 +114,6 @@ public class App implements Runnable {
 		})
 		.forEach(x -> {});
 		
-	}
-	
-	private Model getResourceTreeModel(Model source, Resource root) {
-		Model model = new LinkedHashModel();
-		getResourceTreeModel(source, root, model, Collections.emptyList());
-		return model;
-	}
-	
-	private void getResourceTreeModel(Model source, Resource root, Model result, List<Resource> visited) {
-		
-		if (visited.contains(root)) return;
-		
-		List<Resource> newVisited =
-			Stream.concat(
-				visited.stream(),
-				Arrays.asList(root).stream()
-			)
-			.collect(Collectors.toList());
-		
-		source.filter(root, null, null).forEach(s -> {
-			result.add(s);
-			Value o = s.getObject();
-			if (o instanceof Resource)
-				getResourceTreeModel(source, (Resource) o, result, newVisited);
-		});
 	}
 	
 	private String asTurtle(Model model) {
