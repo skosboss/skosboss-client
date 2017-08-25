@@ -6,7 +6,6 @@ import java.io.StringWriter;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -27,6 +26,8 @@ import org.eclipse.rdf4j.rio.RDFFormat;
 import org.eclipse.rdf4j.rio.Rio;
 
 import skosboss.client.hydra_model.Rdf.SkosApi;
+
+// TODO move this to client-core
 
 public class App implements Runnable {
 
@@ -72,16 +73,12 @@ public class App implements Runnable {
 		properties.keySet().stream()
 		.filter(p -> {
 			
-			System.out.println("???");
-			
 			Property property = p.getProperty();
-			System.out.println("\tis templated link: " + (property instanceof TemplatedLink));
 			if (!(property instanceof TemplatedLink))
 				return false;
 			
 			TemplatedLink link = (TemplatedLink) property;
 			Operation operation = link.getSupportedOperation();
-			System.out.println("\thas ExtOperation: " + (operation instanceof ExtOperation));
 			if (!(operation instanceof ExtOperation))
 				return false;
 			
