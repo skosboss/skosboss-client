@@ -17,17 +17,17 @@ import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
 import org.eclipse.rdf4j.model.util.Models;
 import org.eclipse.rdf4j.model.vocabulary.RDF;
 
-class ParseDescriptor {
+public class ParseDescriptor {
 
 	private static final ValueFactory f = SimpleValueFactory.getInstance();
 	
 	private Model model;
 
-	ParseDescriptor(Model model) {
+	public ParseDescriptor(Model model) {
 		this.model = model;
 	}
 	
-	Map<SupportedProperty, IriTemplate> run() {
+	public Map<SupportedProperty, IriTemplate> run() {
 		
 		// find instance of hydra:ApiDocumentation
 		Resource doc = findApiDocumentation();

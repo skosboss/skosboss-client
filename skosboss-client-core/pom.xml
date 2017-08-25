@@ -17,6 +17,12 @@
 	<dependencies>
 
 		<dependency>
+			<groupId>skosboss</groupId>
+			<artifactId>skosboss-client-hydra-model</artifactId>
+			<version>develop-SNAPSHOT</version>
+		</dependency>
+
+		<dependency>
 			<groupId>org.topbraid</groupId>
 			<artifactId>shacl</artifactId>
 			<version>1.0.1-SNAPSHOT</version>
