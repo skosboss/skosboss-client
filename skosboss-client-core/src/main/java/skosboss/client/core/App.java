@@ -6,24 +6,20 @@ import java.io.StringWriter;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import org.eclipse.rdf4j.model.Model;
-import org.eclipse.rdf4j.model.Resource;
-import org.eclipse.rdf4j.model.Value;
 import org.eclipse.rdf4j.model.ValueFactory;
 import org.eclipse.rdf4j.model.impl.LinkedHashModel;
 import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
 import org.eclipse.rdf4j.model.util.ModelBuilder;
 import org.eclipse.rdf4j.model.vocabulary.RDF;
+import org.eclipse.rdf4j.model.vocabulary.RDFS;
 import org.eclipse.rdf4j.model.vocabulary.SKOS;
 import org.eclipse.rdf4j.rio.RDFFormat;
 import org.eclipse.rdf4j.rio.Rio;
+import org.eclipse.rdf4j.rio.WriterConfig;
+import org.eclipse.rdf4j.rio.helpers.BasicWriterSettings;
 
 import skosboss.client.core.Rdf.SkosApi;
 import skosboss.client.hydra_model.ExtOperation;
@@ -67,6 +63,7 @@ public class App implements Runnable {
 		Model desiredAddedDiff = new ModelBuilder()
 			.subject(f.createBNode())
 			.add(RDF.TYPE, SKOS.CONCEPT_SCHEME)
+			.add(RDF.TYPE, RDFS.RESOURCE)
 			.add(SkosApi.uri, f.createIRI("urn:new-uri"))
 			.add(SkosApi.inProject, f.createLiteral("project id"))
 			.add(SkosApi.title, f.createLiteral("concept scheme title"))
@@ -85,26 +82,35 @@ public class App implements Runnable {
 			if (!(property instanceof TemplatedLink))
 				return false;
 			
+			System.out.println("> prop " + property.getResource());
+			
 			TemplatedLink link = (TemplatedLink) property;
 			Operation operation = link.getSupportedOperation();
 			if (!(operation instanceof ExtOperation))
 				return false;
 			
 			ExtOperation extOperation = (ExtOperation) operation;
-			Shape addedDiff = extOperation.getAddedDiff();
+			Shape addedDiffShape = extOperation.getAddedDiff();
 			
-			if (addedDiff == null) {
+			if (addedDiffShape == null) {
 				System.out.println("op has NO added diff");
 				return false;
 			}
 			
+			Model addedDiff = addedDiffShape.getModel();
 			System.out.println("OPERATION ADDED DIFF:");
-			
-			Model isolatedAddedDiff = addedDiff.getModel();
-			
-			printModel(isolatedAddedDiff);
+			printModel(addedDiff);
 			
 			// TODO check if 'addedDiff' shape matches 'desiredAddedDiff' graph
+			
+			Model result = ShaclValidator.create().validate(desiredAddedDiff, addedDiff);
+			
+			System.out.println("######################################################");
+			System.out.println("######################################################");
+			System.out.println("SHACL VALIDATION RESULT:");
+			printModel(result);
+			System.out.println("######################################################");
+			System.out.println("######################################################");
 			
 			// TODO if so, proceed to execute operation according to 'template' below
 			IriTemplate template = properties.get(p);
@@ -118,7 +124,9 @@ public class App implements Runnable {
 	
 	private String asTurtle(Model model) {
 		StringWriter writer = new StringWriter();
-		Rio.write(model, writer, RDFFormat.TURTLE);
+		WriterConfig config = new WriterConfig();
+		config.set(BasicWriterSettings.PRETTY_PRINT, true);
+		Rio.write(model, writer, RDFFormat.TURTLE, config);
 		return writer.toString();
 	}
 	

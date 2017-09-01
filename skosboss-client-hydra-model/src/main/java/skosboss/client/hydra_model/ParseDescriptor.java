@@ -12,15 +12,11 @@ import org.eclipse.rdf4j.model.Literal;
 import org.eclipse.rdf4j.model.Model;
 import org.eclipse.rdf4j.model.Resource;
 import org.eclipse.rdf4j.model.Value;
-import org.eclipse.rdf4j.model.ValueFactory;
-import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
 import org.eclipse.rdf4j.model.util.Models;
 import org.eclipse.rdf4j.model.vocabulary.RDF;
 
 public class ParseDescriptor {
 
-	private static final ValueFactory f = SimpleValueFactory.getInstance();
-	
 	private Model model;
 	private RdfUtils utils;
 
@@ -234,8 +230,8 @@ public class ParseDescriptor {
 				.collect(Collectors.toSet());
 		
 		Shape returnShape = getShapeProperty(resource, Rdf.HydraExt.returnShape, null);
-		Shape addedDiff = getShapeProperty(resource, Rdf.HydraExt.returnShape, null);
-		Shape deletedDiff = getShapeProperty(resource, Rdf.HydraExt.returnShape, null);
+		Shape addedDiff = getShapeProperty(resource, Rdf.HydraExt.addedDiff, null);
+		Shape deletedDiff = getShapeProperty(resource, Rdf.HydraExt.deletedDiff, null);
 		
 		return new ExtOperation(
 			null,
@@ -312,7 +308,7 @@ public class ParseDescriptor {
 		
 		return
 		classes.stream()
-			.filter(c -> model.contains(c, RDF.TYPE, f.createIRI(Hydra.Class)))
+			.filter(c -> model.contains(c, RDF.TYPE, Rdf.Hydra.Class))
 			.collect(Collectors.toSet());
 	}
 

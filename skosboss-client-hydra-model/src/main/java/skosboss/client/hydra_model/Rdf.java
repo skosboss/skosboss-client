@@ -34,6 +34,7 @@ public class Rdf {
 		
 		public static final IRI
 		
+			Class = iri("Class"),
 			statusCodes = iri("statusCodes"),
 			BasicRepresentation = iri("BasicRepresentation"),
 			mapping = iri("mapping"),
