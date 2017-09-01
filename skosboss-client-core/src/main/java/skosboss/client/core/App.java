@@ -10,6 +10,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
 
+import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.Model;
 import org.eclipse.rdf4j.model.ValueFactory;
 import org.eclipse.rdf4j.model.impl.LinkedHashModel;
@@ -115,6 +116,37 @@ public class App implements Runnable {
 			Model result = ShaclValidator.create().validate(desiredAddedDiff, addedDiff);
 //			printShaclResult(result);
 			ValidationReport report = ParseShaclResult.create(result).get();
+			
+			
+			
+			// check if validation errors are a problem
+			report.getResults().forEach(r -> {
+			
+				IRI path = r.getResultPath();
+				
+				if (desiredAddedDiff.filter(null, path, null).isEmpty()) {
+					
+					// validation error is because the path is NOT in our
+					// desired added diff. this is not a problem; the operation
+					// will simply add MORE data than we intended.
+					
+				}
+				
+				else {
+					
+					// validation error is for a path that is present in our
+					// desired added diff. this means f.e. wrong value.
+					// => this operation does not provide a 'solution' for
+					//    this property. look for another operation.
+					
+					// TODO place this property in some bag of properties
+					// we need to search another operation for.
+					
+				}
+				
+			});
+			
+			
 			return report.getConforms();
 			
 		})
