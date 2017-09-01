@@ -3,15 +3,14 @@ package skosboss.client.hydra_model;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.eclipse.rdf4j.model.IRI;
-import org.eclipse.rdf4j.model.Literal;
 import org.eclipse.rdf4j.model.Model;
 import org.eclipse.rdf4j.model.Resource;
-import org.eclipse.rdf4j.model.Value;
 import org.eclipse.rdf4j.model.util.Models;
 import org.eclipse.rdf4j.model.vocabulary.RDF;
 
@@ -19,14 +18,24 @@ public class ParseDescriptor {
 
 	private Model model;
 	private RdfUtils utils;
+	private RdfParseUtils parseUtils;
 
 	public static ParseDescriptor create(Model model) {
-		return new ParseDescriptor(model, new RdfUtils());
+		return new ParseDescriptor(
+			model,
+			new RdfUtils(),
+			new RdfParseUtils(model)
+		);
 	}
 	
-	ParseDescriptor(Model model, RdfUtils utils) {
+	ParseDescriptor(
+		Model model,
+		RdfUtils utils,
+		RdfParseUtils parseUtils
+	) {
 		this.model = model;
 		this.utils = utils;
+		this.parseUtils = parseUtils;
 	}
 	
 	public Map<SupportedProperty, IriTemplate> run() {
@@ -67,7 +76,7 @@ public class ParseDescriptor {
 	
 	private IriTemplate parseIriTemplate(Resource resource) {
 		
-		String template = getStringProperty(resource, Rdf.Hydra.template, "");
+		String template = parseUtils.getStringProperty(resource, Rdf.Hydra.template).orElse("");
 		
 		if (!model.contains(
 			resource,
@@ -92,9 +101,9 @@ public class ParseDescriptor {
 	}
 	
 	private IriTemplateMapping parseMapping(Resource resource) {
-		boolean required = getBooleanProperty(resource, Rdf.Hydra.required, false);
-		String variable = getStringProperty(resource, Rdf.Hydra.variable, "");
-		IRI property = getIriProperty(resource, Rdf.Hydra.property, null);
+		boolean required = parseUtils.getBooleanProperty(resource, Rdf.Hydra.required).orElse(false);
+		String variable = parseUtils.getStringProperty(resource, Rdf.Hydra.variable).orElse("");
+		IRI property = parseUtils.getIriProperty(resource, Rdf.Hydra.property).orElse(null);
 		return new IriTemplateMapping(variable, property, required);
 	}
 	
@@ -118,120 +127,43 @@ public class ParseDescriptor {
 		));
 	}
 
-	private <T> T getProperty(
+	private Optional<Shape> getShapeProperty(
 		Resource subject,
-		IRI predicate,
-		Function<Value, T> extract,
-		T defaultValue
+		IRI predicate
 	) {
-		return
-			Models.object(model.filter(subject, predicate, null))
-			.map(extract).orElse(defaultValue);
-	}
-	
-	private boolean getBooleanProperty(
-		Resource subject,
-		IRI predicate,
-		boolean defaultValue
-	) {
-		return getProperty(
+		return parseUtils.getProperty(
 			subject,
-			predicate,
-			v -> ((Literal) v).booleanValue(),
-			defaultValue
-		);
-	}
-	
-	private IRI getIriProperty(
-		Resource subject,
-		IRI predicate,
-		IRI defaultValue
-		) {
-		return getProperty(
-			subject,
-			predicate,
-			v -> (IRI) v,
-			defaultValue
-		);
-	}
-	
-	@SuppressWarnings("unused")
-	private Resource getResourceProperty(
-		Resource subject,
-		IRI predicate,
-		Resource defaultValue
-	) {
-		return getProperty(
-			subject,
-			predicate,
-			v -> (Resource) v,
-			defaultValue
-		);
-	}
-	
-	private Shape getShapeProperty(
-		Resource subject,
-		IRI predicate,
-		Shape defaultValue
-	) {
-		return getProperty(
-			subject,
-			predicate,
+			predicate
+		)
+		.map(
 			// TODO just use Model instead of Shape, since Shape is now just a container for a Model...
 			v -> new Shape(
 				utils.getResourceTreeModel(
 					model,
 					(Resource) v
 				)
-			),
-			defaultValue
-		);
-	}
-
-	private String getStringProperty(
-		Resource subject,
-		IRI predicate,
-		String defaultValue
-	) {
-		return getProperty(
-			subject,
-			predicate,
-			v -> ((Literal) v).stringValue(),
-			defaultValue
-		);
-	}
-	
-	private int getIntegerProperty(
-		Resource subject,
-		IRI predicate,
-		int defaultValue
-	) {
-		return getProperty(
-			subject,
-			predicate,
-			v -> ((Literal) v).intValue(),
-			defaultValue
+			)
 		);
 	}
 	
 	private StatusCode parseStatusCode(Resource resource) {
-		String description = getStringProperty(resource, Rdf.Hydra.description, "");
-		int code = getIntegerProperty(resource, Rdf.Hydra.code, 0);
+		String description = parseUtils.getStringProperty(resource, Rdf.Hydra.description).orElse("");
+		int code = parseUtils.getIntegerProperty(resource, Rdf.Hydra.code).orElse(0);
 		return new StatusCode(code, description);
 	}
 	
 	private ExtOperation parseExtOperation(Resource resource) {
 		
-		String method = getStringProperty(resource, Rdf.Hydra.method, "");
+		String method = parseUtils.getStringProperty(resource, Rdf.Hydra.method).orElse("");
 		
 		Set<StatusCode> statusCodes =
 			Models.objectResources(model.filter(resource, Rdf.Hydra.statusCodes, null))
 				.stream().map(this::parseStatusCode)
 				.collect(Collectors.toSet());
 		
-		Shape returnShape = getShapeProperty(resource, Rdf.HydraExt.returnShape, null);
-		Shape addedDiff = getShapeProperty(resource, Rdf.HydraExt.addedDiff, null);
-		Shape deletedDiff = getShapeProperty(resource, Rdf.HydraExt.deletedDiff, null);
+		Shape returnShape = getShapeProperty(resource, Rdf.HydraExt.returnShape).orElse(null);
+		Shape addedDiff = getShapeProperty(resource, Rdf.HydraExt.addedDiff).orElse(null);
+		Shape deletedDiff = getShapeProperty(resource, Rdf.HydraExt.deletedDiff).orElse(null);
 		
 		return new ExtOperation(
 			null,
@@ -278,13 +210,13 @@ public class ParseDescriptor {
 	}
 	
 	private SupportedProperty parseSupportedProperty(Resource resource) {
-		boolean readable = getBooleanProperty(resource, Rdf.Hydra.readable, false);
-		boolean writable = getBooleanProperty(resource, Rdf.Hydra.writable, false);
+		boolean readable = parseUtils.getBooleanProperty(resource, Rdf.Hydra.readable).orElse(false);
+		boolean writable = parseUtils.getBooleanProperty(resource, Rdf.Hydra.writable).orElse(false);
 		Property property =
 			Models.object(model.filter(resource, Rdf.Hydra.property, null))
 				.map(v -> (Resource) v).map(this::parseProperty)
 				.orElse(null);
-		String title = getStringProperty(resource, Rdf.Hydra.title, "");
+		String title = parseUtils.getStringProperty(resource, Rdf.Hydra.title).orElse("");
 		return new SupportedProperty(property, readable, writable, title);
 	}
 	
@@ -313,23 +245,19 @@ public class ParseDescriptor {
 	}
 
 	private Resource getEntryPoint(Resource doc) {
-		return (Resource)
-		Models.object(
-			model.filter(doc, Rdf.Hydra.entrypoint, null)
-		)
-		.orElseThrow(() ->
-			new RuntimeException("resource " + doc + " has no hydra:entrypoint")
-		);
+		return parseUtils
+			.getResourceProperty(doc, Rdf.Hydra.entrypoint)
+			.orElseThrow(() ->
+				new RuntimeException("resource " + doc + " has no hydra:entrypoint")
+			);
 	}
 	
 	private Resource findApiDocumentation() {
-		return
-		Models.subject(
-			model.filter(null, RDF.TYPE, Rdf.Hydra.ApiDocumentation)
-		)
-		.orElseThrow(() ->
-			new RuntimeException("no instance of hydra:ApiDocumentation found")
-		);
+		return parseUtils
+			.getSubjectOfType(Rdf.Hydra.ApiDocumentation)
+			.orElseThrow(() ->
+				new RuntimeException("no instance of hydra:ApiDocumentation found")
+			);
 	}
 	
 }

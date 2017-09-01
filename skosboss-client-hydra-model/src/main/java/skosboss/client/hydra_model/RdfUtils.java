@@ -16,7 +16,7 @@ import org.eclipse.rdf4j.rio.Rio;
 import org.eclipse.rdf4j.rio.WriterConfig;
 import org.eclipse.rdf4j.rio.helpers.BasicWriterSettings;
 
-class RdfUtils {
+public class RdfUtils {
 
 	/**
 	 * Creates a new model containing the statements from the source model
@@ -25,7 +25,7 @@ class RdfUtils {
 	 * @param root
 	 * @return
 	 */
-	Model getResourceTreeModel(Model source, Resource root) {
+	public Model getResourceTreeModel(Model source, Resource root) {
 		Model model = new LinkedHashModel();
 		getResourceTreeModel(source, root, model, Collections.emptyList());
 		return model;

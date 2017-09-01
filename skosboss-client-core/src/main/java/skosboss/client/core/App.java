@@ -7,6 +7,8 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Map;
+import java.util.Optional;
+import java.util.function.Function;
 
 import org.eclipse.rdf4j.model.Model;
 import org.eclipse.rdf4j.model.ValueFactory;
@@ -72,25 +74,30 @@ public class App implements Runnable {
 		System.out.println("desired added diff:");
 		printModel(desiredAddedDiff);
 		
-		System.out.println("PROPS: " + properties.keySet().size());
-		
-		// find ExtOperation with the desired 'addedDiff'
-		properties.keySet().stream()
-		.filter(p -> {
+		Function<SupportedProperty, Optional<ExtOperation>> getOperation = p -> {
 			
 			Property property = p.getProperty();
 			if (!(property instanceof TemplatedLink))
-				return false;
+				return Optional.empty();
 			
 			System.out.println("> prop " + property.getResource());
 			
 			TemplatedLink link = (TemplatedLink) property;
 			Operation operation = link.getSupportedOperation();
 			if (!(operation instanceof ExtOperation))
-				return false;
+				return Optional.empty();
 			
-			ExtOperation extOperation = (ExtOperation) operation;
-			Shape addedDiffShape = extOperation.getAddedDiff();
+			return Optional.of((ExtOperation) operation);
+		};
+		
+		// find ExtOperation with the desired 'addedDiff'
+		properties.keySet().stream()
+		.filter(p -> {
+			
+			Optional<ExtOperation> extOperation = getOperation.apply(p);
+			if (!extOperation.isPresent()) return false;
+			
+			Shape addedDiffShape = extOperation.get().getAddedDiff();
 			
 			if (addedDiffShape == null) {
 				System.out.println("op has NO added diff");
@@ -98,30 +105,34 @@ public class App implements Runnable {
 			}
 			
 			Model addedDiff = addedDiffShape.getModel();
-			System.out.println("OPERATION ADDED DIFF:");
-			printModel(addedDiff);
+			System.out.println("op has added diff");
+//			printModel(addedDiff);
 			
-			// TODO check if 'addedDiff' shape matches 'desiredAddedDiff' graph
-			
+			// check if 'addedDiff' shape matches 'desiredAddedDiff' graph
 			Model result = ShaclValidator.create().validate(desiredAddedDiff, addedDiff);
+//			printShaclResult(result);
+			ValidationReport report = ParseShaclResult.create(result).get();
+			return report.getConforms();
 			
-			System.out.println("######################################################");
-			System.out.println("######################################################");
-			System.out.println("SHACL VALIDATION RESULT:");
-			printModel(result);
-			System.out.println("######################################################");
-			System.out.println("######################################################");
+		})
+		.forEach(p -> {
 			
 			// TODO if so, proceed to execute operation according to 'template' below
 			IriTemplate template = properties.get(p);
+
+			System.out.println("exec template " + template);
 			
-			
-			return true;
-		})
-		.forEach(x -> {});
+		});
 		
 	}
 	
+	private void printShaclResult(Model result) {
+		System.out.println("######################################################");
+		System.out.println("SHACL VALIDATION RESULT:");
+		printModel(result);
+		System.out.println("######################################################");
+	}
+
 	private String asTurtle(Model model) {
 		StringWriter writer = new StringWriter();
 		WriterConfig config = new WriterConfig();
