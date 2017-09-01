@@ -66,7 +66,7 @@ public class App implements Runnable {
 			.subject(f.createBNode())
 			.add(RDF.TYPE, SKOS.CONCEPT_SCHEME)
 			.add(RDF.TYPE, RDFS.RESOURCE)
-			.add(SkosApi.uri, f.createIRI("urn:new-uri"))
+			.add(SkosApi.uri, "uri")
 			.add(SkosApi.inProject, f.createLiteral("project id"))
 			.add(SkosApi.title, f.createLiteral("concept scheme title"))
 			.build();
