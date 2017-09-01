@@ -1,4 +1,4 @@
-package skosboss.client.core;
+package skosboss.client.shacl;
 
 import java.io.IOException;
 import java.io.StringReader;

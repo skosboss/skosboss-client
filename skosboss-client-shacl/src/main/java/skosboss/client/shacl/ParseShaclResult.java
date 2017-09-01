@@ -1,4 +1,4 @@
-package skosboss.client.core;
+package skosboss.client.shacl;
 
 import java.util.Set;
 import java.util.function.Supplier;
@@ -11,13 +11,13 @@ import org.eclipse.rdf4j.model.util.Models;
 import skosboss.client.hydra_model.RdfParseUtils;
 import skosboss.client.hydra_model.RdfUtils;
 
-class ParseShaclResult implements Supplier<ValidationReport> {
+public class ParseShaclResult implements Supplier<ValidationReport> {
 
 	private Model model;
 	private RdfParseUtils parseUtils;
 	private RdfUtils utils;
 
-	static ParseShaclResult create(Model model) {
+	public static ParseShaclResult create(Model model) {
 		return new ParseShaclResult(
 			model,
 			new RdfParseUtils(model),

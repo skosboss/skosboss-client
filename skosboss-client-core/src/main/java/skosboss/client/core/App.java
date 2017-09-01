@@ -32,6 +32,9 @@ import skosboss.client.hydra_model.Property;
 import skosboss.client.hydra_model.Shape;
 import skosboss.client.hydra_model.SupportedProperty;
 import skosboss.client.hydra_model.TemplatedLink;
+import skosboss.client.shacl.ParseShaclResult;
+import skosboss.client.shacl.ShaclValidator;
+import skosboss.client.shacl.ValidationReport;
 
 // TODO move this to client-core
 

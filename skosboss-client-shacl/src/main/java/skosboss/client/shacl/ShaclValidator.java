@@ -1,9 +1,9 @@
-package skosboss.client.core;
+package skosboss.client.shacl;
 
 import org.eclipse.rdf4j.model.Model;
 import org.topbraid.shacl.validation.ValidationUtil;
 
-class ShaclValidator {
+public class ShaclValidator {
 
 	private JenaConverter converter;
 	
@@ -11,7 +11,7 @@ class ShaclValidator {
 		this.converter = converter;
 	}
 
-	Model validate(Model data, Model shapes) {
+	public Model validate(Model data, Model shapes) {
 		return
 		converter.toRdf4j(
 			ValidationUtil.validateModel(
@@ -23,7 +23,7 @@ class ShaclValidator {
 		);
 	}
 
-	static ShaclValidator create() {
+	public static ShaclValidator create() {
 		return new ShaclValidator(
 			new JenaConverter()
 		);
