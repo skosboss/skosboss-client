@@ -9,22 +9,16 @@
 		<version>develop-SNAPSHOT</version>
 	</parent>
 	
-	<artifactId>skosboss-client-core</artifactId>
+	<artifactId>skosboss-client-shacl</artifactId>
 	<packaging>jar</packaging>
 	
-	<name>skosboss-client-core</name>
+	<name>skosboss-client-shacl</name>
 	
 	<dependencies>
 
 		<dependency>
 			<groupId>skosboss</groupId>
 			<artifactId>skosboss-client-hydra-model</artifactId>
-			<version>develop-SNAPSHOT</version>
-		</dependency>
-
-		<dependency>
-			<groupId>skosboss</groupId>
-			<artifactId>skosboss-client-shacl</artifactId>
 			<version>develop-SNAPSHOT</version>
 		</dependency>
 
