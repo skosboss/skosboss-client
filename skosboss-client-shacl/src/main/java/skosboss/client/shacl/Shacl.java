@@ -28,6 +28,13 @@ public class Shacl {
 		sourceConstraintComponent = iri("sourceConstraintComponent"),
 		sourceShape = iri("sourceShape"),
 		value = iri("value"),
-		targetClass = iri("targetClass");
+		targetClass = iri("targetClass"),
+		path = iri("path"),
+		inversePath = iri("inversePath"), 
+		nodeKind = iri("nodeKind"),
+		
+		IRI = iri("IRI"),
+		BlankNode = iri("BlankNode"),
+		Literal = iri("Literal");
 	
 }
