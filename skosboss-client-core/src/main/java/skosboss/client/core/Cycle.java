@@ -82,6 +82,9 @@ class Cycle {
 		
 		Model added = determineAddedTriples(addedDiff);
 		
+		if (added.isEmpty())
+			return Optional.empty();
+		
 		return Optional.of(added);
 	}
 	
