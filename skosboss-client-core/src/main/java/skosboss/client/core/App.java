@@ -7,8 +7,10 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.Function;
 
+import org.apache.commons.lang3.mutable.MutableObject;
 import org.eclipse.rdf4j.model.Model;
 import org.eclipse.rdf4j.model.ValueFactory;
 import org.eclipse.rdf4j.model.impl.LinkedHashModel;
@@ -81,14 +83,19 @@ public class App implements Runnable {
 				ShaclValidator.create()
 			);
 		
-		Model current = desiredAddedDiff;
+		MutableObject<CycleResult> current = new MutableObject<>(
+			new CycleResult(
+				desiredAddedDiff,
+				Optional.empty()
+			)
+		);
 		while (true) {
-			Model pre = current;
-			Cycle cycle = createCycle.apply(current);
-			current = cycle.run();
-			if (pre.equals(current)) {
+			Model pre = current.getValue().getDesiredAddedDiff();
+			Cycle cycle = createCycle.apply(pre);
+			current.setValue(cycle.run());
+			if (pre.equals(current.getValue().getDesiredAddedDiff())) {
 				System.out.println("########## FINAL REMAINING 'desired added diff':");
-				printModel(current);
+				printModel(current.getValue().getDesiredAddedDiff());
 				break;
 			}
 		}

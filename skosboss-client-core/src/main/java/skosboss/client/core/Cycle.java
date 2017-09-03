@@ -134,7 +134,7 @@ class Cycle {
 		);
 	}
 	
-	Model run() {
+	CycleResult run() {
 		
 		// TODO make it so we can consider multiple paths;
 		// so instead of just picking 'best property' here,
@@ -158,13 +158,16 @@ class Cycle {
 			printModel(newDesiredAddedDiff);
 			System.out.println("***************************************");
 			
-			// TODO we also need to return p.getLeft() in some wrapper cuz we need it to execute later...
-			
-			return newDesiredAddedDiff;
+			return new CycleResult(
+				newDesiredAddedDiff,
+				Optional.of(p.getLeft())
+			);
 		})
 		
-		.orElse(desiredAddedDiff);
-		
+		.orElse(new CycleResult(
+			desiredAddedDiff,
+			Optional.empty()
+		));
 	}
 	
 	private Optional<Pair<SupportedProperty, Model>> getBestProperty() {
