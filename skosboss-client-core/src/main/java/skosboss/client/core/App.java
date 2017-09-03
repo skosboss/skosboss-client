@@ -56,19 +56,33 @@ public class App implements Runnable {
 		// #                                   #
 		// #####################################
 		
-		Model desiredAddedDiff = new ModelBuilder()
-			
-			.subject(f.createIRI("urn:concept-scheme"))
-			.add(RDF.TYPE, SKOS.CONCEPT_SCHEME)
-			.add(SkosApi.uri, "uri")
-			.add(SkosApi.inProject, f.createLiteral("project id"))
-			.add(SkosApi.title, f.createLiteral("concept scheme title"))
-			
-			.subject(f.createIRI("urn:concept"))
-			.add(RDF.TYPE, SKOS.CONCEPT)
+//		Model desiredAddedDiff = new ModelBuilder()
+//			
+//			.subject(f.createIRI("http://example.com/scheme/278"))
+//			.add(RDF.TYPE, SKOS.CONCEPT_SCHEME)
 //			.add(SkosApi.uri, "uri")
-			.add(SKOS.TOP_CONCEPT_OF, f.createIRI("urn:concept-scheme"))
-			
+//			.add(SkosApi.inProject, f.createLiteral("project id"))
+//			.add(SkosApi.title, f.createLiteral("concept scheme title"))
+//			
+//			.subject(f.createIRI("urn:concept"))
+//			.add(RDF.TYPE, SKOS.CONCEPT)
+//			.add(SKOS.TOP_CONCEPT_OF, f.createIRI("urn:concept-scheme"))
+//			
+//			.build();
+		
+		// add prefLabel to existing concept
+//		Model desiredAddedDiff = new ModelBuilder()
+//			.subject(f.createIRI("http://xyz"))
+//			.add(RDF.TYPE, SKOS.CONCEPT)
+//			.add(SKOS.PREF_LABEL, "xyz")
+//			.add(SkosApi.uri, "http://xyz")
+//			.build();
+		
+		Model desiredAddedDiff = new ModelBuilder()
+			.subject(f.createIRI("http://DUMMY"))
+			.add(RDF.TYPE, SKOS.CONCEPT)
+			.add(SKOS.TOP_CONCEPT_OF, f.createIRI("urn:pets"))
+			.add(SkosApi.uri, "urn:whatever")
 			.build();
 		
 		System.out.println("desired added diff:");
