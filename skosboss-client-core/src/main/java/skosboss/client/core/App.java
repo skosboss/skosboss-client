@@ -48,6 +48,22 @@ public class App implements Runnable {
 	public static void main(String... args) {
 		new App().run();
 	}
+	
+	private Optional<ExtOperation> getOperation(SupportedProperty p) {
+
+		Property property = p.getProperty();
+		if (!(property instanceof TemplatedLink))
+			return Optional.empty();
+		
+		System.out.println("> prop " + property.getResource());
+		
+		TemplatedLink link = (TemplatedLink) property;
+		Operation operation = link.getSupportedOperation();
+		if (!(operation instanceof ExtOperation))
+			return Optional.empty();
+		
+		return Optional.of((ExtOperation) operation);
+	}
 
 	@Override
 	public void run() {
@@ -87,27 +103,11 @@ public class App implements Runnable {
 		printModel(desiredAddedDiff);
 		System.out.println("******************");
 		
-		Function<SupportedProperty, Optional<ExtOperation>> getOperation = p -> {
-			
-			Property property = p.getProperty();
-			if (!(property instanceof TemplatedLink))
-				return Optional.empty();
-			
-			System.out.println("> prop " + property.getResource());
-			
-			TemplatedLink link = (TemplatedLink) property;
-			Operation operation = link.getSupportedOperation();
-			if (!(operation instanceof ExtOperation))
-				return Optional.empty();
-			
-			return Optional.of((ExtOperation) operation);
-		};
-		
 		// find ExtOperation with the desired 'addedDiff'
 		properties.keySet().stream()
 		.filter(p -> {
 			
-			Optional<ExtOperation> extOperation = getOperation.apply(p);
+			Optional<ExtOperation> extOperation = getOperation(p);
 			if (!extOperation.isPresent()) return false;
 			
 			Shape addedDiffShape = extOperation.get().getAddedDiff();
