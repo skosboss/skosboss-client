@@ -30,6 +30,7 @@ import skosboss.client.hydra_model.IriTemplate;
 import skosboss.client.hydra_model.Operation;
 import skosboss.client.hydra_model.ParseDescriptor;
 import skosboss.client.hydra_model.Property;
+import skosboss.client.hydra_model.RdfUtils;
 import skosboss.client.hydra_model.Shape;
 import skosboss.client.hydra_model.SupportedProperty;
 import skosboss.client.hydra_model.TemplatedLink;
@@ -67,16 +68,25 @@ public class App implements Runnable {
 		// #####################################
 		
 		Model desiredAddedDiff = new ModelBuilder()
-			.subject(f.createBNode())
+			
+			.subject(f.createIRI("urn:concept-scheme"))
 			.add(RDF.TYPE, SKOS.CONCEPT_SCHEME)
 			.add(RDF.TYPE, RDFS.RESOURCE)
 			.add(SkosApi.uri, "uri")
 			.add(SkosApi.inProject, f.createLiteral("project id"))
 			.add(SkosApi.title, f.createLiteral("concept scheme title"))
+			
+			.subject(f.createIRI("urn:concept"))
+			.add(RDF.TYPE, SKOS.CONCEPT)
+			.add(RDF.TYPE, RDFS.RESOURCE)
+			.add(SkosApi.uri, "uri")
+			.add(SKOS.TOP_CONCEPT_OF, f.createIRI("urn:concept-scheme"))
+			
 			.build();
 		
 		System.out.println("desired added diff:");
 		printModel(desiredAddedDiff);
+		System.out.println("******************");
 		
 		Function<SupportedProperty, Optional<ExtOperation>> getOperation = p -> {
 			
@@ -114,15 +124,36 @@ public class App implements Runnable {
 			
 			// check if 'addedDiff' shape matches 'desiredAddedDiff' graph
 			Model result = ShaclValidator.create().validate(desiredAddedDiff, addedDiff);
-//			printShaclResult(result);
+			printShaclResult(result);
 			ValidationReport report = ParseShaclResult.create(result).get();
 			
+			DetermineAddedSubModel x = new DetermineAddedSubModel(desiredAddedDiff, report);
+			System.out.println("$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$");
+			printModel(x.get());
+			System.out.println("$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$");
+			
+//			report.getResults().forEach(r -> {
+//				System.out.println("FOCUS NODE:");
+//				System.out.println("ID in result: " + r.getFocusNode());
+//				printModel(
+//					new RdfUtils()
+//						.getResourceTreeModel(
+//							desiredAddedDiff,
+//							r.getFocusNode()
+//						)
+//				);
+//				System.out.println("######################################################");
+//			});
+
 			
 			
 			// check if validation errors are a problem
 			report.getResults().forEach(r -> {
 			
 				IRI path = r.getResultPath();
+				
+				// TODO if path rdf:type does NOT occur in validation results,
+				// assume resource was created.
 				
 				if (desiredAddedDiff.filter(null, path, null).isEmpty()) {
 					
@@ -138,6 +169,10 @@ public class App implements Runnable {
 					// desired added diff. this means f.e. wrong value.
 					// => this operation does not provide a 'solution' for
 					//    this property. look for another operation.
+					
+					// or it's an error due to the desired added diff.
+					// having a property that's not present in the shape,
+					// and the shape is closed.
 					
 					// TODO place this property in some bag of properties
 					// we need to search another operation for.
@@ -171,7 +206,7 @@ public class App implements Runnable {
 	private String asTurtle(Model model) {
 		StringWriter writer = new StringWriter();
 		WriterConfig config = new WriterConfig();
-		config.set(BasicWriterSettings.PRETTY_PRINT, true);
+//		config.set(BasicWriterSettings.PRETTY_PRINT, true);
 		Rio.write(model, writer, RDFFormat.TURTLE, config);
 		return writer.toString();
 	}
