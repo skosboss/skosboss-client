@@ -4,7 +4,7 @@ import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.ValueFactory;
 import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
 
-class Shacl {
+public class Shacl {
 
 	private static final ValueFactory f = SimpleValueFactory.getInstance();
 
@@ -27,6 +27,7 @@ class Shacl {
 		resultSeverity = iri("resultSeverity"),
 		sourceConstraintComponent = iri("sourceConstraintComponent"),
 		sourceShape = iri("sourceShape"),
-		value = iri("value");
+		value = iri("value"),
+		targetClass = iri("targetClass");
 	
 }

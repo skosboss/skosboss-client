@@ -7,39 +7,24 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Map;
-import java.util.Optional;
 import java.util.function.Function;
 
-import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.Model;
 import org.eclipse.rdf4j.model.ValueFactory;
 import org.eclipse.rdf4j.model.impl.LinkedHashModel;
 import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
 import org.eclipse.rdf4j.model.util.ModelBuilder;
-import org.eclipse.rdf4j.model.util.Models;
 import org.eclipse.rdf4j.model.vocabulary.RDF;
-import org.eclipse.rdf4j.model.vocabulary.RDFS;
 import org.eclipse.rdf4j.model.vocabulary.SKOS;
 import org.eclipse.rdf4j.rio.RDFFormat;
 import org.eclipse.rdf4j.rio.Rio;
 import org.eclipse.rdf4j.rio.WriterConfig;
-import org.eclipse.rdf4j.rio.helpers.BasicWriterSettings;
 
 import skosboss.client.core.Rdf.SkosApi;
-import skosboss.client.hydra_model.ExtOperation;
 import skosboss.client.hydra_model.IriTemplate;
-import skosboss.client.hydra_model.Operation;
 import skosboss.client.hydra_model.ParseDescriptor;
-import skosboss.client.hydra_model.Property;
-import skosboss.client.hydra_model.RdfUtils;
-import skosboss.client.hydra_model.Shape;
 import skosboss.client.hydra_model.SupportedProperty;
-import skosboss.client.hydra_model.TemplatedLink;
-import skosboss.client.shacl.ParseShaclResult;
 import skosboss.client.shacl.ShaclValidator;
-import skosboss.client.shacl.ValidationReport;
-
-// TODO move this to client-core
 
 public class App implements Runnable {
 
@@ -49,21 +34,6 @@ public class App implements Runnable {
 		new App().run();
 	}
 	
-	private Optional<ExtOperation> getOperation(SupportedProperty p) {
-
-		Property property = p.getProperty();
-		if (!(property instanceof TemplatedLink))
-			return Optional.empty();
-		
-		System.out.println("> prop " + property.getResource());
-		
-		TemplatedLink link = (TemplatedLink) property;
-		Operation operation = link.getSupportedOperation();
-		if (!(operation instanceof ExtOperation))
-			return Optional.empty();
-		
-		return Optional.of((ExtOperation) operation);
-	}
 
 	@Override
 	public void run() {
@@ -103,53 +73,30 @@ public class App implements Runnable {
 		printModel(desiredAddedDiff);
 		System.out.println("******************");
 		
-		// find ExtOperation with the desired 'addedDiff'
-		properties.keySet().stream()
-		.filter(p -> {
-			
-			Optional<ExtOperation> extOperation = getOperation(p);
-			if (!extOperation.isPresent()) return false;
-			
-			Shape addedDiffShape = extOperation.get().getAddedDiff();
-			
-			if (addedDiffShape == null) {
-				System.out.println("op has NO added diff");
-				return false;
+		Function<Model, Cycle> createCycle = m ->
+			new Cycle(
+				m,
+				properties.keySet(),
+				properties,
+				ShaclValidator.create()
+			);
+		
+		Model current = desiredAddedDiff;
+		while (true) {
+			Model pre = current;
+			Cycle cycle = createCycle.apply(current);
+			current = cycle.run();
+			if (pre.equals(current)) {
+				System.out.println("########## FINAL REMAINING 'desired added diff':");
+				printModel(current);
+				break;
 			}
-			
-			Model addedDiff = addedDiffShape.getModel();
-			System.out.println("op has added diff");
-			
-			// check if 'addedDiff' shape matches 'desiredAddedDiff' graph
-			Model result = ShaclValidator.create().validate(desiredAddedDiff, addedDiff);
-//			printShaclResult(result);
-			ValidationReport report = ParseShaclResult.create(result).get();
-			
-			IRI targetClass = Models.objectIRI(
-				addedDiff.filter(null, f.createIRI("http://www.w3.org/ns/shacl#", "targetClass"), null)
-			)
-			.orElseThrow(() -> new RuntimeException("added diff shacl shape must have a target class"));
-			
-			System.out.println("TARGET CLASS: " + targetClass);
-			DetermineAddedSubModel x = new DetermineAddedSubModel(desiredAddedDiff, report, targetClass);
-			System.out.println("$$$$$$ TRIPLES THAT WOULD BE ADDED BY EXECUTING THIS $$$$$$");
-			printModel(x.get());
-			System.out.println("$$$$$$ ============================================= $$$$$$");
-			
-
-			
-			
-			return report.getConforms();
-			
-		})
-		.forEach(p -> {
-			
-			// TODO if so, proceed to execute operation according to 'template' below
-			IriTemplate template = properties.get(p);
-
-			System.out.println("exec template " + template);
-			
-		});
+		}
+		
+		
+		// TODO if so, proceed to execute operation according to 'template' below
+//		IriTemplate template = properties.get(p);
+//		System.out.println("exec template " + template);
 		
 	}
 	

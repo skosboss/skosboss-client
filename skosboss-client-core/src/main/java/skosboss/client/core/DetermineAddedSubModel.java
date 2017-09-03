@@ -12,7 +12,6 @@ import org.eclipse.rdf4j.model.Resource;
 import org.eclipse.rdf4j.model.Value;
 import org.eclipse.rdf4j.model.impl.LinkedHashModel;
 import org.eclipse.rdf4j.model.vocabulary.RDF;
-import org.eclipse.rdf4j.model.vocabulary.SKOS;
 
 import skosboss.client.shacl.ValidationReport;
 
@@ -92,6 +91,7 @@ class DetermineAddedSubModel implements Supplier<Model> {
 					});
 			}
 			
+			@SuppressWarnings("unused")
 			void processObject(Value o) {
 				if (o instanceof Resource) {
 					Model subModel = getForSubject((Resource) o);
