@@ -12,6 +12,7 @@ import org.eclipse.rdf4j.model.Resource;
 import org.eclipse.rdf4j.model.Value;
 import org.eclipse.rdf4j.model.impl.LinkedHashModel;
 import org.eclipse.rdf4j.model.vocabulary.RDF;
+import org.eclipse.rdf4j.model.vocabulary.SKOS;
 
 import skosboss.client.shacl.ValidationReport;
 
@@ -19,13 +20,16 @@ class DetermineAddedSubModel implements Supplier<Model> {
 
 	private Model desiredAdded;
 	private ValidationReport report;
+	private IRI targetClass;
 	
 	DetermineAddedSubModel(
 		Model desiredAdded,
-		ValidationReport report
+		ValidationReport report,
+		IRI targetClass
 	) {
 		this.desiredAdded = desiredAdded;
 		this.report = report;
+		this.targetClass = targetClass;
 	}
 
 	@Override
@@ -38,8 +42,9 @@ class DetermineAddedSubModel implements Supplier<Model> {
 		
 		return
 		
-		// get all subjects that have an rdf:type triple
-		desiredAdded.filter(null, RDF.TYPE, null)
+		// get all subjects that have an rdf:type triple with
+		// the specified target class
+		desiredAdded.filter(null, RDF.TYPE, targetClass)
 			.subjects().stream()
 			
 			// process
@@ -69,13 +74,6 @@ class DetermineAddedSubModel implements Supplier<Model> {
 				.map(r -> r.getResultPath())
 				.collect(Collectors.toList());
 		
-		// if there was an error for rdf:type, we assume
-		// no triples for this resource were created.
-		// this is to work with shapes that are meant for a different
-		// rdf:type.
-		if (errorPaths.contains(RDF.TYPE))
-			return result;
-		
 		class CopyPredicateTriplesAndRecurse {
 			
 			IRI p;
@@ -89,7 +87,8 @@ class DetermineAddedSubModel implements Supplier<Model> {
 					.filter(subject, p, null)
 					.forEach(s -> {
 						result.add(s);
-						processObject(s.getObject());
+						// TODO recursive step?
+//						processObject(s.getObject());
 					});
 			}
 			
