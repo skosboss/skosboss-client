@@ -1,6 +1,7 @@
 package skosboss.client.hydra_model;
 
 import java.util.Optional;
+import java.util.Set;
 
 import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.Literal;
@@ -76,5 +77,10 @@ public class RdfParseUtils {
 		return Models.subject(
 			model.filter(null, RDF.TYPE, type)
 		);
+	}
+	
+	public Set<Resource> getSubjectsOfType(IRI type) {
+		return model.filter(null, RDF.TYPE, type)
+			.subjects();
 	}
 }
