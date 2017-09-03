@@ -2,6 +2,7 @@ package skosboss.client.core;
 
 import java.io.IOException;
 import java.io.Reader;
+import java.io.StringReader;
 import java.io.StringWriter;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -19,7 +20,9 @@ import org.eclipse.rdf4j.model.util.ModelBuilder;
 import org.eclipse.rdf4j.model.vocabulary.RDF;
 import org.eclipse.rdf4j.model.vocabulary.SKOS;
 import org.eclipse.rdf4j.rio.RDFFormat;
+import org.eclipse.rdf4j.rio.RDFParseException;
 import org.eclipse.rdf4j.rio.Rio;
+import org.eclipse.rdf4j.rio.UnsupportedRDFormatException;
 import org.eclipse.rdf4j.rio.WriterConfig;
 
 import skosboss.client.core.Rdf.SkosApi;
@@ -41,6 +44,7 @@ public class App implements Runnable {
 	public void run() {
 
 		String folder = "D:\\development\\skos-api-metamodel\\demo\\pp\\";
+//		String folder = "D:\\MariaP\\git\\skosboss\\skos-api-metamodel\\demo\\pp\\";
 		Model model = merge(
 			load(folder + "pp.ttl"),
 			load(folder + "EntryPoint.ttl")
@@ -78,12 +82,67 @@ public class App implements Runnable {
 //			.add(SkosApi.uri, "http://xyz")
 //			.build();
 		
-		Model desiredAddedDiff = new ModelBuilder()
-			.subject(f.createIRI("http://DUMMY"))
-			.add(RDF.TYPE, SKOS.CONCEPT)
-			.add(SKOS.TOP_CONCEPT_OF, f.createIRI("urn:pets"))
-			.add(SkosApi.uri, "urn:whatever")
-			.build();
+//		Model desiredAddedDiff = new ModelBuilder()
+//			.subject(f.createIRI("http://DUMMY"))
+//			.add(RDF.TYPE, SKOS.CONCEPT)
+//			.add(SKOS.TOP_CONCEPT_OF, f.createIRI("urn:pets"))
+//			.add(SkosApi.uri, "urn:whatever")
+//			.build();
+		
+		final String scenario = 
+			"@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .\n" + 
+			"@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .\n" + 
+			"@prefix owl: <http://www.w3.org/2002/07/owl#> .\n" + 
+			"@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n" + 
+			"@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .\n" + 
+			"@prefix hydra: <http://www.w3.org/ns/hydra/core#> .\n" + 
+			"@prefix hydra-ext: <http://skos-api.org/hydra-extended#> .\n" + 
+			"@prefix sh: <http://www.w3.org/ns/shacl#> .\n" + 
+			"@prefix pp: <http://someapivendor.com/api/> .\n" + 
+			"@prefix skos-api: <http://skos-api.org/metamodel#> .\n" + 
+			"@prefix dmy: <http://dummy/> . \n" + 
+			"\n" + 
+			"dmy:cs1\n" + 
+			"  a skos:ConceptScheme ;\n" + 
+			"  skos-api:inProject \"p1-id\" ;\n" + 
+			"  skos-api:title \"cs1-title\" ;\n" + 
+			"  skos-api:uri \"\" ; \n" + 
+			".\n" + 
+			"\n" + 
+			"dmy:a\n" + 
+			"  a skos:Concept ;\n" + 
+			"  skos:prefLabel \"a-pLabel\" ;\n" + 
+			"  skos:altLabel \"a-aLabel\" ;\n" + 
+			"  skos:narrower dmy:b ;\n" + 
+			"  skos:topConceptOf dmy:cs1 ;\n" + 
+			"  skos-api:parent dmy:cs1 ;\n" + 
+			"  skos-api:uri \"\" ;\n" + 
+			".\n" + 
+			"\n" + 
+			"dmy:b\n" + 
+			"  a skos:Concept ;\n" + 
+			"  skos:prefLabel \"b-pLabel\" ;\n" + 
+			"  skos:broader dmy:a ;\n" + 
+			"  skos-api:parent dmy:a ;\n" + 
+			"  skos-api:uri \"\" ;\n" + 
+			".\n" + 
+			"";
+		
+		
+		Model desiredAddedDiff = new LinkedHashModel();
+		try {
+			desiredAddedDiff = Rio.parse(new StringReader(scenario), "", RDFFormat.TURTLE);
+		} catch (RDFParseException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (UnsupportedRDFormatException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
 		
 		System.out.println("desired added diff:");
 		printModel(desiredAddedDiff);
