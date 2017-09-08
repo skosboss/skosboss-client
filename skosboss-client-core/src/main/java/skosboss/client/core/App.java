@@ -148,9 +148,9 @@ public class App implements Runnable {
 		}
 		
 		
-		System.out.println("desired added diff:");
+		System.out.println("\ndesired added diff:\n");
 		printModel(desiredAddedDiff);
-		System.out.println("******************");
+		System.out.println("*************************************************");
 		
 		Function<Model, Cycle> createCycle = m ->
 			new Cycle(
@@ -177,7 +177,7 @@ public class App implements Runnable {
 			current.setValue(result);
 			result.getProperty().ifPresent(trail::add);
 			if (pre.equals(current.getValue().getDesiredAddedDiff())) {
-				System.out.println("########## FINAL REMAINING 'desired added diff':");
+				System.out.println("\nFINISHED PLANNING STAGE. remaining 'desired added diff':\n");
 				printModel(current.getValue().getDesiredAddedDiff());
 				break;
 			}
@@ -192,6 +192,8 @@ public class App implements Runnable {
 		List<SupportedProperty> trail,
 		Map<SupportedProperty, IriTemplate> properties
 	) {
+		
+		System.out.println("\nCOMMENCING EXECUTION\n");
 
 		OperationExecutor executor = new OperationExecutor("http://localhost:5000", new OkHttpClient());
 
@@ -218,7 +220,7 @@ public class App implements Runnable {
 			CycleResult result = cycle.run();
 			current.setValue(result);
 			if (pre.equals(current.getValue().getDesiredAddedDiff())) {
-				System.out.println("$$$ FINAL REMAINING 'desired added diff':");
+				System.out.println("FINISHED EXECUTION. remaining 'desired added diff':");
 				printModel(current.getValue().getDesiredAddedDiff());
 				break;
 			}

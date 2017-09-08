@@ -354,8 +354,7 @@ class Cycle {
 		// the sub-set of the 'desired added diff' this operation would add
 		Model addedTriples = p.getAdded();
 		
-		System.out.println("SELECTED PROPERTY/OPERATION: " + property.getTitle());
-		System.out.println("$$$ " + p.getInstance() + " /// " + p.getProperty().getTitle());
+		System.out.println("SELECTED OPERATION: " + property.getTitle());
 		System.out.println("triples this operation would add (sub-set of 'desired added diff'):\n");
 		printModel(addedTriples);
 		System.out.println("*************************************************");
@@ -377,9 +376,9 @@ class Cycle {
 			// find out which resource was replaced
 			replacement = Models.subject(effect.filter(null, RDF.TYPE, targetClass));
 			
-			System.out.println("############# EFFECT ###################");
-			printModel(effect);
-			System.out.println("##########################################");
+//			System.out.println("############# EFFECT ###################");
+//			printModel(effect);
+//			System.out.println("##########################################");
 			
 		}
 		
