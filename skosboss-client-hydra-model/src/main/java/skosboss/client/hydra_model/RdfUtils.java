@@ -26,12 +26,16 @@ public class RdfUtils {
 	 * @return
 	 */
 	public Model getResourceTreeModel(Model source, Resource root) {
+		return getResourceTreeModel(source, root, true);
+	}
+	
+	public Model getResourceTreeModel(Model source, Resource root, boolean recursively) {
 		Model model = new LinkedHashModel();
-		getResourceTreeModel(source, root, model, Collections.emptyList());
+		getResourceTreeModel(source, root, model, Collections.emptyList(), recursively);
 		return model;
 	}
 	
-	private void getResourceTreeModel(Model source, Resource root, Model result, List<Resource> visited) {
+	private void getResourceTreeModel(Model source, Resource root, Model result, List<Resource> visited, boolean recursively) {
 		
 		if (visited.contains(root)) return;
 		
@@ -44,9 +48,11 @@ public class RdfUtils {
 		
 		source.filter(root, null, null).forEach(s -> {
 			result.add(s);
-			Value o = s.getObject();
-			if (o instanceof Resource)
-				getResourceTreeModel(source, (Resource) o, result, newVisited);
+			if (recursively) {
+				Value o = s.getObject();
+				if (o instanceof Resource)
+					getResourceTreeModel(source, (Resource) o, result, newVisited, true);
+			}
 		});
 	}
 	

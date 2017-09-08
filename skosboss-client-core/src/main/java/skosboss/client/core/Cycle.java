@@ -9,7 +9,6 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import org.apache.commons.lang3.tuple.Pair;
 import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.Model;
 import org.eclipse.rdf4j.model.Resource;
@@ -292,7 +291,12 @@ class Cycle {
 		instances.stream()
 			.<Optional<AddedTriples>>map(i -> {
 				
-				Model instanceDesiredAddedDiff = utils.getResourceTreeModel(desiredAddedDiff, i);
+				Model instanceDesiredAddedDiff = utils.getResourceTreeModel(desiredAddedDiff, i, false);
+				
+//				System.out.println(">>>> instance [" + i + "]");
+//				System.out.println("sub model:");
+//				printModel(instanceDesiredAddedDiff);
+//				System.out.println("//////////////");
 				
 				// check if 'addedDiff' shape matches 'desiredAddedDiff' graph
 				Model result = validator.validate(instanceDesiredAddedDiff, addedDiff);
@@ -361,12 +365,25 @@ class Cycle {
 		
 		// create new state
 		
+		// 'addedTriples' will be removed to obtain new state.
+		// find all rdf:type triples it contains (and thus will be removed),
+		// so we can restore them later if needed
+		Model addedTypeTriples = addedTriples.filter(null, RDF.TYPE, null);
+		
 		Model newDesiredAddedDiff = new LinkedHashModel(desiredAddedDiff);
 		addedTriples.forEach(newDesiredAddedDiff::remove);
 		
+		// for each removed rdf:type triple, check if its subject is used
+		// as a subject in any triples still present in the new state.
+		// if so, re-add the rdf:type triple.
+		addedTypeTriples.stream().filter(t ->
+			newDesiredAddedDiff.contains(t.getSubject(), null, null)
+		)
+		.forEach(newDesiredAddedDiff::add);
+		
 		// replace the replaced resource in the remaining 'desired added diff'
 		ValueFactory f = SimpleValueFactory.getInstance();
-		newDesiredAddedDiff =
+		Model newDesiredAddedDiffReplaced =
 			newDesiredAddedDiff.stream().map(s -> {
 				if (s.getSubject().equals(target))
 					return f.createStatement(replacement, s.getPredicate(), s.getObject());
@@ -382,11 +399,11 @@ class Cycle {
 //		System.out.println("SELECTED PROPERTY " + property.getTitle());
 		
 		System.out.println("remaining 'desired added diff':\n");
-		printModel(newDesiredAddedDiff);
+		printModel(newDesiredAddedDiffReplaced);
 		System.out.println("***************************************");
 		
 		return new CycleResult(
-			newDesiredAddedDiff,
+			newDesiredAddedDiffReplaced,
 			Optional.of(property)
 		);		
 	}
