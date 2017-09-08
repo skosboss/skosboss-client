@@ -60,6 +60,7 @@ public class ReturnShapeUtil {
 	public static Model predictReturnShapeEffect(Model model, Model returnShape, Resource target) {
 		// Determine returned concept uri
 		IRI subject = f.createIRI("http://someuri/"+counter);
+		counter ++;
 		
 		// If target is specified, process target, and add triples
 		if (target != null) {
