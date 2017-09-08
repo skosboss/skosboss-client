@@ -113,7 +113,7 @@ public class App implements Runnable {
 			"  a skos:Concept ;\n" + 
 			"  skos:prefLabel \"a-pLabel\" ;\n" + 
 			"  skos:altLabel \"a-aLabel\" ;\n" + 
-			"  skos:narrower dmy:b ;\n" + 
+//			"  skos:narrower dmy:b ;\n" + 
 			"  skos:topConceptOf dmy:cs1 ;\n" + 
 			"  skos-api:parent dmy:cs1 ;\n" + 
 			"  skos-api:uri \"\" ;\n" + 
