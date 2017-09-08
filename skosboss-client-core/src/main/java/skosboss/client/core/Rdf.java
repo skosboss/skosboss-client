@@ -10,7 +10,7 @@ public class Rdf {
 
 	public static class SkosApi {
 		
-		private static final String namespace = "http://skos-api.org/metamodel#";
+		public static final String namespace = "http://skos-api.org/metamodel#";
 
 		private static IRI iri(String localName) {
 			return f.createIRI(namespace, localName);
@@ -18,6 +18,7 @@ public class Rdf {
 
 		public static final IRI
 		
+			parent = iri("parent"),
 			uri = iri("uri"),
 			inProject = iri("inProject"),
 			title = iri("title");
