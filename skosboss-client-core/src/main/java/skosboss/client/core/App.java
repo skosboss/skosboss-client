@@ -7,6 +7,9 @@ import java.io.StringWriter;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
@@ -156,6 +159,8 @@ public class App implements Runnable {
 				ShaclValidator.create()
 			);
 		
+		List<SupportedProperty> trail = new ArrayList<>();
+			
 		MutableObject<CycleResult> current = new MutableObject<>(
 			new CycleResult(
 				desiredAddedDiff,
@@ -165,7 +170,9 @@ public class App implements Runnable {
 		while (true) {
 			Model pre = current.getValue().getDesiredAddedDiff();
 			Cycle cycle = createCycle.apply(pre);
-			current.setValue(cycle.run());
+			CycleResult result = cycle.run();
+			current.setValue(result);
+			result.getProperty().ifPresent(trail::add);
 			if (pre.equals(current.getValue().getDesiredAddedDiff())) {
 				System.out.println("########## FINAL REMAINING 'desired added diff':");
 				printModel(current.getValue().getDesiredAddedDiff());
@@ -173,13 +180,45 @@ public class App implements Runnable {
 			}
 		}
 		
-		
-		// TODO if so, proceed to execute operation according to 'template' below
-//		IriTemplate template = properties.get(p);
-//		System.out.println("exec template " + template);
+//		execute(desiredAddedDiff, trail, properties);
 		
 	}
 	
+	private void execute(
+		Model desiredAddedDiff,
+		List<SupportedProperty> trail,
+		Map<SupportedProperty, IriTemplate> properties
+	) {
+
+		// TODO OperationExecutor executor = new OperationExecutor(hostUri, client);
+		
+		trail.forEach(p -> {
+			
+			IriTemplate template = properties.get(p);
+			System.out.println("execute template: " + template.getTemplate());
+
+			Map<String, Object> values = new LinkedHashMap<>();
+			
+			template.getMappings().stream().map(m -> {
+				
+				m.getProperty();
+				
+//				values.put(
+//					m.getVariable(),
+//					value
+//				);
+				
+				
+				return "";
+			});
+			
+			TemplatedOperation operation = new TemplatedOperation(template, values);
+			
+			// TODO executor.execute(operation);
+			
+		});
+	}
+
 	private void printShaclResult(Model result) {
 		System.out.println("######################################################");
 		System.out.println("SHACL VALIDATION RESULT:");

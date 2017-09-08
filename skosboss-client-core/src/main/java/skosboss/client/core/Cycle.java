@@ -58,17 +58,10 @@ class Cycle {
 	}
 
 	private Optional<ExtOperation> getOperation(SupportedProperty p) {
-		return getOperation(p, true);
-	}
-	
-	private Optional<ExtOperation> getOperation(SupportedProperty p, boolean printProperty) {
 
 		Property property = p.getProperty();
 		if (!(property instanceof TemplatedLink))
 			return Optional.empty();
-		
-//		if (printProperty)
-//			System.out.println("> considering prop " + property.getResource());
 		
 		TemplatedLink link = (TemplatedLink) property;
 		Operation operation = link.getSupportedOperation();
@@ -236,35 +229,14 @@ class Cycle {
 		}
 		
 		boolean run() {
-			
-			boolean valid =
+			return
 			template.getMappings().stream()
 				.filter(m -> m.isRequired())
 				.map(m -> m.getProperty())
 				.map(p -> getPropertyValue(p))
 				.allMatch(v -> v.isPresent());
-			
-			if (template.getTemplate().equals("/PoolParty/api/thesaurus/{project}/concept{?concept,label}&property=alternativeLabel{&language}")) {
-				System.out.println("CHECKING [" + instance + "] - valid: " + valid);
-			}
-			
-			return valid;
 		}
 	}
-	
-	/**
-	 * Returns true if property values are present for all properties used
-	 * in the template's mappings, or false otherwise.
-	 * @param template
-	 * @return
-	 */
-//	private boolean areTemplatePropertyValuesPresent(IriTemplate template) {
-//		return template.getMappings().stream()
-//			.filter(m -> m.isRequired())
-//			.map(m -> m.getProperty())
-//			.map(p -> getPropertyValue(p))
-//			.allMatch(v -> v.isPresent());
-//	}
 	
 	private RdfUtils utils = new RdfUtils(); // TODO inject
 	
@@ -301,21 +273,12 @@ class Cycle {
 				
 				Model instanceDesiredAddedDiff = utils.getResourceTreeModel(desiredAddedDiff, i, false);
 				
-//				System.out.println(">>>> instance [" + i + "]");
-//				System.out.println("sub model:");
-//				printModel(instanceDesiredAddedDiff);
-//				System.out.println("//////////////");
-				
 				// check if 'addedDiff' shape matches 'desiredAddedDiff' graph
 				Model result = validator.validate(instanceDesiredAddedDiff, addedDiff);
 	//			printShaclResult(result);
 				ValidationReport report = ParseShaclResult.create(result).get();
 				
 				Model added = new DetermineAddedSubModel(instanceDesiredAddedDiff, report, targetClass).get();
-				
-	//			System.out.println("\t$$$$$$ TRIPLES THAT WOULD BE ADDED BY EXECUTING THIS $$$$$$");
-	//			printModel(added);
-	//			System.out.println("\t$$$$$$ ============================================= $$$$$$");
 				
 				if (added.isEmpty())
 					return Optional.empty();
@@ -354,11 +317,9 @@ class Cycle {
 		
 		// determine effect of the return shape, replacing dummy
 		// resources by generated 'actual' resources
-		ExtOperation operation = getOperation(property, false).get(); // NOTE: we know operation is present at this point
+		ExtOperation operation = getOperation(property).get(); // NOTE: we know operation is present at this point
 		IRI targetClass = getTargetClass(operation.getAddedDiff().getModel());
 		Resource target = Models.subject(addedTriples.filter(null, RDF.TYPE, targetClass)).get(); // NOTE: assuming this exists
-		
-		// TODO if (operation.getReturnShape() == null) things go bad.
 		
 		Optional<Resource> replacement;
 		if (operation.getReturnShape() != null) {
