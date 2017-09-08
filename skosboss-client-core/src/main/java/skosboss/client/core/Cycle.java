@@ -327,6 +327,70 @@ class Cycle {
 		);
 	}
 	
+	CycleResult evaluateProperty(PropertyExecution p) {
+		
+		SupportedProperty property = p.getProperty();
+		
+		// the sub-set of the 'desired added diff' this operation would add
+		Model addedTriples = p.getAdded();
+		
+		System.out.println("SELECTED PROPERTY/OPERATION: " + property.getTitle());
+		System.out.println("$$$ " + p.getInstance() + " /// " + p.getProperty().getTitle());
+		System.out.println("triples this operation would add (sub-set of 'desired added diff'):\n");
+		printModel(addedTriples);
+		System.out.println("*************************************************");
+		
+		// determine effect of the return shape, replacing dummy
+		// resources by generated 'actual' resources
+		ExtOperation operation = getOperation(property, false).get(); // NOTE: we know operation is present at this point
+		IRI targetClass = getTargetClass(operation.getAddedDiff().getModel());
+		Resource target = Models.subject(addedTriples.filter(null, RDF.TYPE, targetClass)).get(); // NOTE: assuming this exists
+		
+		// TODO if (operation.getReturnShape() == null) things go bad.
+		
+		Model returnShape = operation.getReturnShape() == null
+			? new LinkedHashModel()
+			: operation.getReturnShape().getModel();
+		Model effect = ReturnShapeUtil.predictReturnShapeEffect(addedTriples, returnShape, target);
+		
+		// TODO add 'effect' to client state
+		
+		// find out which resource was replaced
+		Resource replacement = Models.subject(effect.filter(null, RDF.TYPE, targetClass)).get(); // NOTE: assuming this exists
+		
+		
+		// create new state
+		
+		Model newDesiredAddedDiff = new LinkedHashModel(desiredAddedDiff);
+		addedTriples.forEach(newDesiredAddedDiff::remove);
+		
+		// replace the replaced resource in the remaining 'desired added diff'
+		ValueFactory f = SimpleValueFactory.getInstance();
+		newDesiredAddedDiff =
+			newDesiredAddedDiff.stream().map(s -> {
+				if (s.getSubject().equals(target))
+					return f.createStatement(replacement, s.getPredicate(), s.getObject());
+				if (s.getObject().equals(target))
+					return f.createStatement(s.getSubject(), s.getPredicate(), replacement);
+				return s;
+			})
+			.collect(
+				Collectors.toCollection(() -> new LinkedHashModel())
+			);
+		
+		
+//		System.out.println("SELECTED PROPERTY " + property.getTitle());
+		
+		System.out.println("remaining 'desired added diff':\n");
+		printModel(newDesiredAddedDiff);
+		System.out.println("***************************************");
+		
+		return new CycleResult(
+			newDesiredAddedDiff,
+			Optional.of(property)
+		);		
+	}
+	
 	CycleResult run() {
 		
 		// TODO make it so we can consider multiple paths;
@@ -335,69 +399,7 @@ class Cycle {
 		
 		return
 			
-		getBestProperty().map(p -> {
-			
-			SupportedProperty property = p.getProperty();
-			
-			// the sub-set of the 'desired added diff' this operation would add
-			Model addedTriples = p.getAdded();
-			
-			System.out.println("SELECTED PROPERTY/OPERATION: " + property.getTitle());
-			System.out.println("$$$ " + p.getInstance() + " /// " + p.getProperty().getTitle());
-			System.out.println("triples this operation would add (sub-set of 'desired added diff'):\n");
-			printModel(addedTriples);
-			System.out.println("*************************************************");
-			
-			// determine effect of the return shape, replacing dummy
-			// resources by generated 'actual' resources
-			ExtOperation operation = getOperation(property, false).get(); // NOTE: we know operation is present at this point
-			IRI targetClass = getTargetClass(operation.getAddedDiff().getModel());
-			Resource target = Models.subject(addedTriples.filter(null, RDF.TYPE, targetClass)).get(); // NOTE: assuming this exists
-			
-			// TODO if (operation.getReturnShape() == null) things go bad.
-			
-			Model returnShape = operation.getReturnShape() == null
-				? new LinkedHashModel()
-				: operation.getReturnShape().getModel();
-			Model effect = ReturnShapeUtil.predictReturnShapeEffect(addedTriples, returnShape, target);
-			
-			// TODO add 'effect' to client state
-			
-			// find out which resource was replaced
-			Resource replacement = Models.subject(effect.filter(null, RDF.TYPE, targetClass)).get(); // NOTE: assuming this exists
-			
-			
-			// create new state
-			
-			Model newDesiredAddedDiff = new LinkedHashModel(desiredAddedDiff);
-			addedTriples.forEach(newDesiredAddedDiff::remove);
-			
-			// replace the replaced resource in the remaining 'desired added diff'
-			ValueFactory f = SimpleValueFactory.getInstance();
-			newDesiredAddedDiff =
-				newDesiredAddedDiff.stream().map(s -> {
-					if (s.getSubject().equals(target))
-						return f.createStatement(replacement, s.getPredicate(), s.getObject());
-					if (s.getObject().equals(target))
-						return f.createStatement(s.getSubject(), s.getPredicate(), replacement);
-					return s;
-				})
-				.collect(
-					Collectors.toCollection(() -> new LinkedHashModel())
-				);
-			
-			
-//			System.out.println("SELECTED PROPERTY " + property.getTitle());
-			
-			System.out.println("remaining 'desired added diff':\n");
-			printModel(newDesiredAddedDiff);
-			System.out.println("***************************************");
-			
-			return new CycleResult(
-				newDesiredAddedDiff,
-				Optional.of(property)
-			);
-		})
+		getBestProperty().map(this::evaluateProperty)
 		
 		.orElse(new CycleResult(
 			desiredAddedDiff,
