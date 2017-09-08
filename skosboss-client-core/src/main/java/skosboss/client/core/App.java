@@ -12,6 +12,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 
 import org.apache.commons.lang3.mutable.MutableObject;
@@ -28,6 +29,7 @@ import org.eclipse.rdf4j.rio.Rio;
 import org.eclipse.rdf4j.rio.UnsupportedRDFormatException;
 import org.eclipse.rdf4j.rio.WriterConfig;
 
+import okhttp3.OkHttpClient;
 import skosboss.client.core.Rdf.SkosApi;
 import skosboss.client.hydra_model.IriTemplate;
 import skosboss.client.hydra_model.ParseDescriptor;
@@ -116,7 +118,6 @@ public class App implements Runnable {
 			"  a skos:Concept ;\n" + 
 			"  skos:prefLabel \"a-pLabel\" ;\n" + 
 			"  skos:altLabel \"a-aLabel\" ;\n" + 
-//			"  skos:narrower dmy:b ;\n" + 
 			"  skos:topConceptOf dmy:cs1 ;\n" + 
 			"  skos-api:parent dmy:cs1 ;\n" + 
 			"  skos-api:uri \"\" ;\n" + 
@@ -156,7 +157,9 @@ public class App implements Runnable {
 				m,
 				properties.keySet(),
 				properties,
-				ShaclValidator.create()
+				ShaclValidator.create(),
+				Optional.empty(),
+				null
 			);
 		
 		List<SupportedProperty> trail = new ArrayList<>();
@@ -180,7 +183,7 @@ public class App implements Runnable {
 			}
 		}
 		
-//		execute(desiredAddedDiff, trail, properties);
+		execute(desiredAddedDiff, trail, properties);
 		
 	}
 	
@@ -190,33 +193,36 @@ public class App implements Runnable {
 		Map<SupportedProperty, IriTemplate> properties
 	) {
 
-		// TODO OperationExecutor executor = new OperationExecutor(hostUri, client);
-		
-		trail.forEach(p -> {
-			
-			IriTemplate template = properties.get(p);
-			System.out.println("execute template: " + template.getTemplate());
+		OperationExecutor executor = new OperationExecutor("http://localhost:5000", new OkHttpClient());
 
-			Map<String, Object> values = new LinkedHashMap<>();
-			
-			template.getMappings().stream().map(m -> {
-				
-				m.getProperty();
-				
-//				values.put(
-//					m.getVariable(),
-//					value
-//				);
-				
-				
-				return "";
-			});
-			
-			TemplatedOperation operation = new TemplatedOperation(template, values);
-			
-			// TODO executor.execute(operation);
-			
-		});
+		BiFunction<Model, SupportedProperty, Cycle> createCycle = (m, p) ->
+		new Cycle(
+			m,
+			properties.keySet(),
+			properties,
+			ShaclValidator.create(),
+			Optional.of(p),
+			executor
+		);
+		
+		MutableObject<CycleResult> current = new MutableObject<>(
+			new CycleResult(
+				desiredAddedDiff,
+				Optional.empty()
+			)
+		);
+		
+		for (SupportedProperty p : trail) {
+			Model pre = current.getValue().getDesiredAddedDiff();
+			Cycle cycle = createCycle.apply(pre, p);
+			CycleResult result = cycle.run();
+			current.setValue(result);
+			if (pre.equals(current.getValue().getDesiredAddedDiff())) {
+				System.out.println("$$$ FINAL REMAINING 'desired added diff':");
+				printModel(current.getValue().getDesiredAddedDiff());
+				break;
+			}
+		}		
 	}
 
 	private void printShaclResult(Model result) {

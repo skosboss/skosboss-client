@@ -1,5 +1,6 @@
 package skosboss.client.core;
 
+import java.io.IOException;
 import java.io.StringWriter;
 import java.util.Collections;
 import java.util.List;
@@ -44,17 +45,27 @@ class Cycle {
 	private Set<SupportedProperty> properties;
 	private Map<SupportedProperty, IriTemplate> templates;
 	private ShaclValidator validator;
+	private Optional<SupportedProperty> forceProperty;
+	private OperationExecutor executor;
 	
+	private boolean debug() {
+		return executor != null;
+	}
+
 	Cycle(
 		Model desiredAddedDiff,
 		Set<SupportedProperty> properties,
 		Map<SupportedProperty, IriTemplate> templates,
-		ShaclValidator validator
+		ShaclValidator validator,
+		Optional<SupportedProperty> forceProperty,
+		OperationExecutor executor
 	) {
 		this.desiredAddedDiff = desiredAddedDiff;
 		this.properties = properties;
 		this.templates = templates;
 		this.validator = validator;
+		this.forceProperty = forceProperty;
+		this.executor = executor;
 	}
 
 	private Optional<ExtOperation> getOperation(SupportedProperty p) {
@@ -179,12 +190,12 @@ class Cycle {
 						.filter(this::isNoDummy) // filter out dummy parents
 						.findFirst();
 					
-					return Optional.ofNullable(parent.orElse(null));
+					return Optional.ofNullable(parent.map(r -> r.stringValue()).orElse(null));
 				}
 			}
 			
 			else if (property.equals(SkosApi.inProject)) {
-				return Optional.of("my project id"); // TODO
+				return Optional.of("1DF18289-11B0-0001-446A-151092184050");
 			}
 			
 			else if (property.equals(SkosApi.title)) {
@@ -218,7 +229,7 @@ class Cycle {
 					if (uri.isPresent())
 						return Optional.of(uri.get());
 					
-					return Optional.of(instance);
+					return Optional.of(instance.stringValue());
 				}
 			}
 			
@@ -226,6 +237,21 @@ class Cycle {
 				+ "[" + property + "] for instance [" + instance + "]");
 			
 			return Optional.empty();
+		}
+		
+		Map<String, Object> getTemplateValues() {
+			return
+			template.getMappings().stream()
+				.filter(m -> m.isRequired())
+				.collect(Collectors.toMap(
+					m -> m.getVariable(),
+					m ->
+						getPropertyValue(m.getProperty())
+						.orElseThrow(() -> new RuntimeException(
+							"could not obtain template value for property [" + 
+								m.getProperty() + "] for instance [" + instance + "]")
+						)
+				));
 		}
 		
 		boolean run() {
@@ -302,6 +328,25 @@ class Cycle {
 		);
 	}
 	
+	Model exec(PropertyExecution p) {
+	
+		SupportedProperty property = p.getProperty();
+		
+		IriTemplate template = templates.get(property);
+		System.out.println("execute template: " + template.getTemplate());
+
+		Map<String, Object> values =
+			new CheckTemplateValuesPresent(p.getInstance(), template).getTemplateValues();
+		
+		TemplatedOperation operation = new TemplatedOperation(template, values);
+		try {
+			return executor.execute(operation).getBody();
+		}
+		catch (IOException e) {
+			throw new RuntimeException("failed to execute operation", e);
+		}
+	}
+	
 	CycleResult evaluateProperty(PropertyExecution p) {
 		
 		SupportedProperty property = p.getProperty();
@@ -322,7 +367,23 @@ class Cycle {
 		Resource target = Models.subject(addedTriples.filter(null, RDF.TYPE, targetClass)).get(); // NOTE: assuming this exists
 		
 		Optional<Resource> replacement;
-		if (operation.getReturnShape() != null) {
+
+		if (executor != null) {
+			
+			Model effect = exec(p);
+
+			// TODO add 'effect' to client state
+			
+			// find out which resource was replaced
+			replacement = Models.subject(effect.filter(null, RDF.TYPE, targetClass));
+			
+			System.out.println("############# EFFECT ###################");
+			printModel(effect);
+			System.out.println("##########################################");
+			
+		}
+		
+		else if (operation.getReturnShape() != null) {
 			
 			Model returnShape = operation.getReturnShape().getModel();
 			
@@ -428,7 +489,25 @@ class Cycle {
 		}
 	}
 	
+	private Optional<PropertyExecution> getPropertyExecution(SupportedProperty p) {
+		return
+		determinePropertyAddedTriples(p).stream()
+		.map(x -> new PropertyExecution(p, x.getAdded(), x.getInstance()))
+		
+		// sort by size of model
+		.sorted((a, b) ->
+			b.getAdded().size() -
+			a.getAdded().size()
+		)
+		
+		.findFirst();
+	}
+	
 	private Optional<PropertyExecution> getBestProperty() {
+		
+		if (forceProperty.isPresent())
+			return getPropertyExecution(forceProperty.get());
+		
 		return
 			
 		// get added models for each property;
