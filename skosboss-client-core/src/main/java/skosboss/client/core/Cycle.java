@@ -220,11 +220,12 @@ class Cycle {
 			
 			else if (property.equals(SkosApi.uri)) {
 				if (isType(SKOS.CONCEPT)) {
-					return Optional.ofNullable(
-						getStringProperty(SkosApi.uri)
-							.filter(this::isNoDummy)
-							.orElse(null)
-					);
+					
+					Optional<String> uri = getStringProperty(SkosApi.uri);
+					if (uri.isPresent())
+						return Optional.of(uri.get());
+					
+					return Optional.of(instance);
 				}
 			}
 			
@@ -235,12 +236,19 @@ class Cycle {
 		}
 		
 		boolean run() {
-			return
+			
+			boolean valid =
 			template.getMappings().stream()
 				.filter(m -> m.isRequired())
 				.map(m -> m.getProperty())
 				.map(p -> getPropertyValue(p))
 				.allMatch(v -> v.isPresent());
+			
+			if (template.getTemplate().equals("/PoolParty/api/thesaurus/{project}/concept{?concept,label}&property=alternativeLabel{&language}")) {
+				System.out.println("CHECKING [" + instance + "] - valid: " + valid);
+			}
+			
+			return valid;
 		}
 	}
 	
@@ -352,16 +360,19 @@ class Cycle {
 		
 		// TODO if (operation.getReturnShape() == null) things go bad.
 		
-		Model returnShape = operation.getReturnShape() == null
-			? new LinkedHashModel()
-			: operation.getReturnShape().getModel();
-		Model effect = ReturnShapeUtil.predictReturnShapeEffect(addedTriples, returnShape, target);
-		
-		// TODO add 'effect' to client state
-		
-		// find out which resource was replaced
-		Resource replacement = Models.subject(effect.filter(null, RDF.TYPE, targetClass)).get(); // NOTE: assuming this exists
-		
+		Optional<Resource> replacement;
+		if (operation.getReturnShape() != null) {
+			
+			Model returnShape = operation.getReturnShape().getModel();
+			
+			Model effect = ReturnShapeUtil.predictReturnShapeEffect(addedTriples, returnShape, target);
+			
+			// TODO add 'effect' to client state
+			
+			// find out which resource was replaced
+			replacement = Models.subject(effect.filter(null, RDF.TYPE, targetClass));
+		}
+		else replacement = Optional.empty();
 		
 		// create new state
 		
@@ -384,16 +395,19 @@ class Cycle {
 		// replace the replaced resource in the remaining 'desired added diff'
 		ValueFactory f = SimpleValueFactory.getInstance();
 		Model newDesiredAddedDiffReplaced =
-			newDesiredAddedDiff.stream().map(s -> {
-				if (s.getSubject().equals(target))
-					return f.createStatement(replacement, s.getPredicate(), s.getObject());
-				if (s.getObject().equals(target))
-					return f.createStatement(s.getSubject(), s.getPredicate(), replacement);
-				return s;
-			})
-			.collect(
-				Collectors.toCollection(() -> new LinkedHashModel())
-			);
+			replacement.<Model>map(r ->
+				newDesiredAddedDiff.stream().map(s -> {
+					if (s.getSubject().equals(target))
+						return f.createStatement(r, s.getPredicate(), s.getObject());
+					if (s.getObject().equals(target))
+						return f.createStatement(s.getSubject(), s.getPredicate(), r);
+					return s;
+				})
+				.collect(
+					Collectors.toCollection(() -> new LinkedHashModel())
+				)
+			)
+			.orElse(newDesiredAddedDiff);
 		
 		
 //		System.out.println("SELECTED PROPERTY " + property.getTitle());
